@@ -1,9 +1,6 @@
 FROM clickhouse/clickhouse-server:latest
 
-# Копируем скрипты
 COPY init_official.sql /docker-entrypoint-initdb.d/
-COPY start_info.sh /
 
-RUN chmod +x /start_info.sh
-
-CMD ["/bin/bash", "/start_info.sh"]
+# Просто запускаем сервер, а информацию проверяем отдельно
+CMD ["clickhouse-server"]
