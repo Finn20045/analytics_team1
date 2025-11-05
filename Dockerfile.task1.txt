@@ -1,37 +1,10 @@
-FROM ubuntu:22.04
+FROM clickhouse/clickhouse-server:latest
 
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Установка зависимостей
-RUN apt-get update && apt-get install -y \
-    wget \
-    gnupg \
-    apt-transport-https \
-    ca-certificates \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Добавляем репозиторий ClickHouse
-RUN apt-get update && \
-    apt-get install -y dirmngr && \
-    mkdir -p /usr/share/keyrings && \
-    curl -fsSL https://packages.clickhouse.com/rpm/lts/repodata/repomd.xml.key | gpg --dearmor > /usr/share/keyrings/clickhouse-keyring.gpg && \
-    echo "deb [signed-by=/usr/share/keyrings/clickhouse-keyring.gpg] https://packages.clickhouse.com/deb stable main" | tee /etc/apt/sources.list.d/clickhouse.list
-
-# Установка ClickHouse
-RUN apt-get update && apt-get install -y \
-    clickhouse-server \
-    clickhouse-client \
-    && rm -rf /var/lib/apt/lists/*
-
-# Копируем конфигурационные файлы
-COPY config.xml /etc/clickhouse-server/users.d/
+# Копируем скрипт инициализации БД
 COPY init.sql /docker-entrypoint-initdb.d/
+
+# Копируем скрипт запуска с проверками
 COPY start.sh /
-
-# Делаем скрипт исполняемым
 RUN chmod +x /start.sh
-
-EXPOSE 8123 9000
 
 CMD ["/bin/bash", "/start.sh"]
