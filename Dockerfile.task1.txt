@@ -1,8 +1,5 @@
 FROM clickhouse/clickhouse-server:latest
 
-# Устанавливаем wget для загрузки данных
-RUN apt-get update && apt-get install -y wget && rm -rf /var/lib/apt/lists/*
-
 # Копируем скрипты
 COPY init_official.sql /docker-entrypoint-initdb.d/
 COPY start_info.sh /
