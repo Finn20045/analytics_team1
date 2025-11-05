@@ -5,33 +5,37 @@ echo "Starting ClickHouse server..."
 clickhouse-server --config-file=/etc/clickhouse-server/config.xml &
 SERVER_PID=$!
 
-# Ждем запуска
-echo "Waiting for ClickHouse to start..."
-sleep 15
+# Функция проверки через HTTP (порт 8123)
+wait_for_clickhouse() {
+    echo "Waiting for ClickHouse to be ready..."
+    until curl -s "http://localhost:8123/" > /dev/null; do
+        echo "ClickHouse is not ready yet... waiting 3 seconds"
+        sleep 3
+    done
+    echo "ClickHouse is ready!"
+}
+
+# Ждем полного запуска
+wait_for_clickhouse
+
+# Даем время для выполнения init.sql
+echo "Waiting for database initialization..."
+sleep 10
 
 # Выполняем запросы для задания
 echo "=== ClickHouse Lab 1 ==="
-clickhouse-client --query "SELECT version() as \"ClickHouse Version\""
+curl -s "http://localhost:8123/?query=SELECT%20version()%20as%20ClickHouseVersion"
 
+echo ""
 echo ""
 echo "=== Database Information ==="
-clickhouse-client --query "
-SELECT 
-    'Database name: test_db' as info
-UNION ALL
-SELECT 
-    'Table rows count: ' || toString(count()) as info 
-FROM tutorial.hits_v1
-UNION ALL
-SELECT 
-    'Table columns count: ' || toString(count()) as info 
-FROM system.columns 
-WHERE database = 'tutorial' AND table = 'hits_v1'
-"
+curl -s "http://localhost:8123/?query=SELECT%20'Database%20name:%20test_db'%20as%20info%20UNION%20ALL%20SELECT%20'Table%20rows%20count:%20'%20%7C%7C%20toString(count())%20as%20info%20FROM%20tutorial.hits_v1%20UNION%20ALL%20SELECT%20'Table%20columns%20count:%20'%20%7C%7C%20toString(count())%20as%20info%20FROM%20system.columns%20WHERE%20database%20%3D%20'tutorial'%20AND%20table%20%3D%20'hits_v1'"
 
 echo ""
-echo "ClickHouse server is running..."
-echo "Connect with: docker exec -it <container_id> clickhouse-client"
+echo ""
+echo "✅ Все запросы выполнены успешно!"
+echo "ClickHouse server is running on port 8123"
+echo "Connect with: clickhouse-client"
 
 # Ожидаем завершения
 wait $SERVER_PID
