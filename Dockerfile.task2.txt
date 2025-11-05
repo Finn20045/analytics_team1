@@ -1,0 +1,34 @@
+# Dockerfile для задания 2
+FROM ubuntu:22.04
+
+# Установка переменных окружения
+ENV PYTHONUNBUFFERED=1
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Установка Python 3.10 и необходимых пакетов
+RUN apt-get update && apt-get install -y \
+    python3.10 \
+    python3.10-venv \
+    python3-pip \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Создание и активация виртуального окружения
+RUN python3.10 -m venv /app/venv
+ENV PATH="/app/venv/bin:$PATH"
+
+# Копирование requirements файла
+COPY requirements_team1.txt /app/
+
+# Установка зависимостей в виртуальном окружении
+RUN /app/venv/bin/pip install --upgrade pip && \
+    /app/venv/bin/pip install -r /app/requirements_team1.txt
+
+# Копирование скрипта тестирования
+COPY test_team1.py /app/
+
+# Рабочая директория
+WORKDIR /app
+
+# Запуск тестового скрипта
+CMD ["/app/venv/bin/python", "test_team1.py"]

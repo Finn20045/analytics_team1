@@ -1,0 +1,36 @@
+# Dockerfile для задания 1
+FROM ubuntu:22.04
+
+# Установка необходимых пакетов
+RUN apt-get update && apt-get install -y \
+    wget \
+    gnupg \
+    apt-transport-https \
+    && rm -rf /var/lib/apt/lists/*
+
+# Добавление репозитория ClickHouse
+RUN wget -O - https://packages.clickhouse.com/keys/clickhouse-key | apt-key add - && \
+    echo "deb https://packages.clickhouse.com/deb stable main" | tee /etc/apt/sources.list.d/clickhouse.list
+
+# Установка ClickHouse
+RUN apt-get update && apt-get install -y \
+    clickhouse-server \
+    clickhouse-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Создание директории для конфигурации
+RUN mkdir -p /etc/clickhouse-server/users.d
+
+# Упрощенная конфигурация для демо
+RUN echo "<yandex><users><default><password></password><profile>default</profile><quota>default</quota></default></users></yandex>" > /etc/clickhouse-server/users.d/default-password.xml
+
+# Создание скрипта инициализации
+RUN mkdir -p /docker-entrypoint-initdb.d
+
+COPY init.sql /docker-entrypoint-initdb.d/
+
+# Экспорт порта
+EXPOSE 8123 9000
+
+# Запуск сервиса
+CMD ["/usr/bin/clickhouse-server", "--config-file=/etc/clickhouse-server/config.xml"]
