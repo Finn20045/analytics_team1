@@ -1,18 +1,25 @@
-# Dockerfile для задания 1
+# Исправленный Dockerfile для задания 1
 FROM ubuntu:22.04
 
-# Установка необходимых пакетов
+# Установка переменных окружения
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Обновление и установка необходимых пакетов
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
     apt-transport-https \
+    ca-certificates \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Добавление репозитория ClickHouse
-RUN wget -O - https://packages.clickhouse.com/keys/clickhouse-key | apt-key add - && \
-    echo "deb https://packages.clickhouse.com/deb stable main" | tee /etc/apt/sources.list.d/clickhouse.list
+# Исправленная команда загрузки ключа ClickHouse
+RUN curl -s https://packages.clickhouse.com/rpm/lts/repodata/repomd.xml.key | gpg --dearmor > /usr/share/keyrings/clickhouse-keyring.gpg
 
-# Установка ClickHouse
+# Добавление репозитория ClickHouse
+RUN echo "deb [signed-by=/usr/share/keyrings/clickhouse-keyring.gpg] https://packages.clickhouse.com/deb stable main" | tee /etc/apt/sources.list.d/clickhouse.list
+
+# Обновление и установка ClickHouse
 RUN apt-get update && apt-get install -y \
     clickhouse-server \
     clickhouse-client \
@@ -21,13 +28,14 @@ RUN apt-get update && apt-get install -y \
 # Создание директории для конфигурации
 RUN mkdir -p /etc/clickhouse-server/users.d
 
-# Упрощенная конфигурация для демо
-RUN echo "<yandex><users><default><password></password><profile>default</profile><quota>default</quota></default></users></yandex>" > /etc/clickhouse-server/users.d/default-password.xml
+# Упрощенная конфигурация для демо (без пароля)
+RUN echo "<yandex><users><default><password></password><profile>default</profile><quota>default</quota><networks><ip>::/0</ip></networks></default></users></yandex>" > /etc/clickhouse-server/users.d/default-password.xml
 
-# Создание скрипта инициализации
-RUN mkdir -p /docker-entrypoint-initdb.d
-
+# Копирование скрипта инициализации
 COPY init.sql /docker-entrypoint-initdb.d/
+
+# Создание директории для данных
+RUN mkdir -p /var/lib/clickhouse
 
 # Экспорт порта
 EXPOSE 8123 9000
